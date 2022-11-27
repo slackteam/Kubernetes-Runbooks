@@ -1,0 +1,49 @@
+uuidgen ens192
+
+sudo vi /etc/sysconfig/network-scripts/ifcfg-ens192
+
+TYPE=Ethernet
+PROXY_METHOD=none
+BROWSER_ONLY=no
+BOOTPROTO=static
+DEFROUTE=yes
+IPV4_FAILURE_FATAL=no
+IPV6INIT=yes
+IPV6_AUTOCONF=yes
+IPV6_DEFROUTE=yes
+IPV6_FAILURE_FATAL=no
+IPV6_ADDR_GEN_MODE=eui64
+NAME=ens192
+UUID=8ed6508f-b613-44ec-8e19-1bd2d9e3e856
+DEVICE=ens192
+ONBOOT=yes
+PREFIX=24
+IPADDR=192.168.1.125
+GATEWAY=192.168.1.1
+DNS1=192.168.1.1
+
+sudo systemctl restart NetworkManager
+
+sudo nmcli connection down enp1s0 && sudo nmcli connection up enp1s0
+
+sudo hostnamectl set-hostname kube-hq-master-slt1
+
+cat /etc/hosts
+
+sudo echo "192.168.1.124 kube-hq-master-slt1
+192.168.1.144 kube-hq-node-slt1
+192.168.1.145 kube-hq-node-slt2
+192.168.1.146 kube-hq-node-slt3" >> /etc/hosts 
+
+cat /etc/hosts
+
+
+cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
+[kubernetes]
+name=Kubernetes
+baseurl=https://packages.cloud.google.com/yum/repos/kubernetes-el7-\$basearch
+enabled=1
+gpgcheck=1
+gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
+exclude=kubelet kubeadm kubectl
+EOF
