@@ -1,11 +1,42 @@
-uuidgen ens192
+##################### HOST CONFIG ####################### 
+
+sudo setenforce 0
+
+sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
+
+
+
+
+##################### CONTROL PLANE ONLY ####################### 
+
+sudo firewall-cmd --permanent --add-port=6443/tcp
+
+sudo firewall-cmd --permanent --add-port=10250/tcp
+
+sudo firewall-cmd --permanent --add-port=2379/tcp
+
+sudo firewall-cmd --permanent --add-port=2380/tcp
+
+sudo firewall-cmd --permanent --add-port=10259/tcp
+
+sudo firewall-cmd --permanent --add-port=10257/tcp
+
+
+##################### WORKER NODES ONLY ####################### 
+
+sudo firewall-cmd --permanent --add-port=10250/tcp
+sudo firewall-cmd --permanent --add-port=30000-32767/tcp
+
+
+
+(((uuidgen ens192)))
 
 sudo vi /etc/sysconfig/network-scripts/ifcfg-ens192
 
 TYPE=Ethernet
 PROXY_METHOD=none
 BROWSER_ONLY=no
-BOOTPROTO=static
+BOOTPROTO=none
 DEFROUTE=yes
 IPV4_FAILURE_FATAL=no
 IPV6INIT=yes
@@ -14,17 +45,18 @@ IPV6_DEFROUTE=yes
 IPV6_FAILURE_FATAL=no
 IPV6_ADDR_GEN_MODE=eui64
 NAME=ens192
-UUID=8ed6508f-b613-44ec-8e19-1bd2d9e3e856
+UUID=2f4fd84d-d077-4117-8ff6-47e54ddc76c2
 DEVICE=ens192
 ONBOOT=yes
 PREFIX=24
-IPADDR=192.168.1.125
+NETMASK=255.255.255.0
+IPADDR=192.168.1.145
 GATEWAY=192.168.1.1
 DNS1=192.168.1.1
 
 sudo systemctl restart NetworkManager
 
-sudo nmcli connection down enp1s0 && sudo nmcli connection up enp1s0
+sudo nmcli connection down ens192 && sudo nmcli connection up ens192
 
 sudo hostnamectl set-hostname kube-hq-master-slt1
 
@@ -37,6 +69,68 @@ sudo echo "192.168.1.124 kube-hq-master-slt1
 
 cat /etc/hosts
 
+free -m
+
+swapoff -a
+
+sudo vi /etc/fstab
+
+
+########################## INSTALL DOCKER ##########################
+
+sudo yum install -y yum-utils
+
+sudo yum-config-manager \
+    --add-repo \
+    https://download.docker.com/linux/centos/docker-ce.repo
+    
+sudo yum install docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+sudo systemctl start docker
+
+sudo systemctl enable docker
+
+yum install wget -y
+
+wget https://dl.google.com/go/go1.13.4.linux-amd64.tar.gz
+
+sha256sum go1.13.4.linux-amd64.tar.gz
+
+sudo tar -C /usr/local -xf go1.13.4.linux-amd64.tar.gz
+
+vi ~/.bash_profile
+
+PATH=$PATH:/usr/local/go/bin
+
+source ~/.bash_profile
+
+yum install git -y
+
+git clone https://github.com/Mirantis/cri-dockerd.git
+
+cd cri-dockerd
+
+mkdir bin
+
+go build -o bin/cri-dockerd
+
+mkdir -p /usr/local/bin
+
+install -o root -g root -m 0755 bin/cri-dockerd /usr/local/bin/cri-dockerd
+
+cp -a packaging/systemd/* /etc/systemd/system
+
+sed -i -e 's,/usr/bin/cri-dockerd,/usr/local/bin/cri-dockerd,' /etc/systemd/system/cri-docker.service
+
+systemctl daemon-reload
+
+systemctl enable cri-docker.service
+
+systemctl enable --now cri-docker.socket
+
+cri-dockerd --help
+
+
 
 cat <<EOF | sudo tee /etc/yum.repos.d/kubernetes.repo
 [kubernetes]
@@ -47,3 +141,8 @@ gpgcheck=1
 gpgkey=https://packages.cloud.google.com/yum/doc/rpm-package-key.gpg
 exclude=kubelet kubeadm kubectl
 EOF
+
+
+sudo yum install -y kubelet kubeadm kubectl --disableexcludes=kubernetes
+
+sudo systemctl enable --now kubelet
