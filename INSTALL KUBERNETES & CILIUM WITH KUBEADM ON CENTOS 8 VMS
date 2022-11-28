@@ -164,4 +164,7 @@ cilium install
 rm /etc/containerd/config.toml
 systemctl restart containerd
 
-kubeadm join... 
+kubeadm join...
+
+
+kubeadm token create --print-join-command
