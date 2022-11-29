@@ -139,11 +139,6 @@ unix:///var/run/cri-dockerd.sock
 kubeadm init --control-plane-endpoint=kube-hq-master-slt1 --cri-dockerd unix:///var/run/cri-dockerd.sock
 
 
-To start using your cluster, you need to run the following as a regular user:
-
-  mkdir -p $HOME/.kube
-  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
-  sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 
 ################### CILIUM INSTALL ######################
@@ -166,5 +161,11 @@ systemctl restart containerd
 
 kubeadm join...
 
+
+To start using your cluster, you need to run the following as a regular user:
+
+  mkdir -p $HOME/.kube
+  sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+  sudo chown $(id -u):$(id -g) $HOME/.kube/config
 
 kubeadm token create --print-join-command
