@@ -6,7 +6,6 @@ sudo sed -i 's/^SELINUX=enforcing$/SELINUX=permissive/' /etc/selinux/config
 
 
 
-
 ##################### CONTROL PLANE ONLY ####################### 
 
 sudo firewall-cmd --permanent --add-port=6443/tcp
